@@ -47,10 +47,10 @@ public class LocationController {
     }
 
     private void createLocationRequest() {
-        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
+        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 20000)
                 .setWaitForAccurateLocation(false)
-                .setMinUpdateIntervalMillis(5000)
-                .setMaxUpdateDelayMillis(15000)
+                .setMinUpdateIntervalMillis(30000)
+                .setMaxUpdateDelayMillis(60000)
                 .build();
     }
 
@@ -63,10 +63,8 @@ public class LocationController {
                     Location location = locationResult.getLastLocation();
                     locationModel.updateLocation(location);
 
-                    // Intenta obtener la dirección
                     getAddressFromLocation(location);
 
-                    // Notifica a los oyentes sobre la actualización
                     if (listener != null) {
                         listener.onLocationUpdated(locationModel);
                     }

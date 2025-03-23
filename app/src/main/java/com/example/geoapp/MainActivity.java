@@ -3,6 +3,8 @@ package com.example.geoapp;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +22,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, LocationController.LocationUpdateListener {
@@ -29,6 +32,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap googleMap;
     private TextView tvAddress, tvCoordinates, tvAccuracy;
     private Button btnUpdateLocation;
+    private RadioGroup rgMapType;
+    private boolean mapUIConfigured = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,38 +53,57 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvCoordinates = findViewById(R.id.tvCoordinates);
         tvAccuracy = findViewById(R.id.tvAccuracy);
         btnUpdateLocation = findViewById(R.id.btnUpdateLocation);
+        rgMapType = findViewById(R.id.rgMapType);
 
-        // Inicializar el controlador de ubicación
         locationController = new LocationController(this, this);
-
-        // Configurar el mapa
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         if (mapFragment != null) {
             mapFragment.getMapAsync(this);
         }
 
-        // Configurar botón para actualizar ubicación
         btnUpdateLocation.setOnClickListener(v -> locationController.getLastLocation());
+
+        rgMapType.setOnCheckedChangeListener((group, checkedId) -> {
+            if (googleMap != null) {
+                if (checkedId == R.id.rbNormal) {
+                    googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                } else if (checkedId == R.id.rbSatellite) {
+                    googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                } else if (checkedId == R.id.rbHybrid) {
+                    googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                } else if (checkedId == R.id.rbTerrain) {
+                    googleMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                }
+            }
+        });
     }
 
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
         googleMap = map;
 
-        // Configuración inicial del mapa
         googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+
+        googleMap.getUiSettings().setZoomControlsEnabled(true);
+        googleMap.getUiSettings().setZoomGesturesEnabled(true);
+
+        googleMap.getUiSettings().setCompassEnabled(true);
+
+        try {
+            googleMap.setMyLocationEnabled(true);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
 
         if (locationController.getLocationModel().getLatitude() != 0
                 && locationController.getLocationModel().getLongitude() != 0) {
             updateMapLocation(locationController.getLocationModel());
         } else {
-            // Ubicación por defecto (por ejemplo, la Ciudad de México)
-            LatLng defaultLocation = new LatLng(19.4326, -99.1332);
+            LatLng defaultLocation = new LatLng(15.506186111111, -88.024897222222);
             googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 12));
         }
 
-        // Iniciar actualizaciones de ubicación
         locationController.startLocationUpdates();
     }
 
@@ -100,7 +124,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 location.getAccuracy()
         ));
 
-        // Actualizar la ubicación en el mapa
         updateMapLocation(location);
     }
 
@@ -108,17 +131,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (googleMap != null) {
             LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
 
-            // Limpiar marcadores anteriores
             googleMap.clear();
 
-            // Añadir un nuevo marcador
             googleMap.addMarker(new MarkerOptions()
                     .position(position)
                     .title("Mi ubicación")
                     .snippet(location.getAddress())
             );
 
-            // Mover la cámara a la ubicación actual
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15));
         }
     }
@@ -128,11 +148,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_LOCATION_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permiso concedido, iniciar actualizaciones de ubicación
                 locationController.startLocationUpdates();
                 locationController.getLastLocation();
             } else {
-                // Permiso denegado, mostrar mensaje
                 Toast.makeText(this, "Se requiere permiso de ubicación para usar esta aplicación", Toast.LENGTH_LONG).show();
             }
         }
